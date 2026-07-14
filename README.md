@@ -1,5 +1,7 @@
 # badkeys (Go)
 
+[![CI](https://github.com/jig/badkeys/actions/workflows/ci.yml/badge.svg)](https://github.com/jig/badkeys/actions/workflows/ci.yml)
+
 A Go port of [badkeys](https://github.com/badkeys/badkeys) by Hanno Böck: check
 cryptographic public keys for known weaknesses and match them against
 blocklists of compromised keys.
