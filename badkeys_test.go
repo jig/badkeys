@@ -101,12 +101,27 @@ func TestSmalld(t *testing.T) {
 	if f := r.Findings["rsawarnings"]; f == nil || f.Subtest != "exponent_not_65537" {
 		t.Errorf("large-e rsawarnings: got %+v (type=%s err=%v)", f, r.Type, r.Err)
 	}
+
+	// regression test for division by zero bug (upstream 00facea)
+	r = DetectAndCheck(read(t, "rsa-smalld-divzero.key"), WithChecks(mychecks...))
+	if has(r, "smalld") {
+		t.Errorf("smalld false positive on divzero key")
+	}
+	if !has(r, "rsawarnings") {
+		t.Errorf("divzero: expected rsawarnings, got %v (type=%s err=%v)", r.Findings, r.Type, r.Err)
+	}
 }
 
 func TestRSAInvalid(t *testing.T) {
 	r := CheckPubkey(read(t, "rsa-e1.key"), WithChecks("rsainvalid"))
 	if f := r.Findings["rsainvalid"]; f == nil || f.Subtest != "invalid_e" {
 		t.Errorf("rsainvalid: got %+v (type=%s err=%v)", f, r.Type, r.Err)
+	}
+	// Upstream reports this as unparseable (Python cryptography rejects
+	// e >= n); our size-limit-free parser loads it and flags it instead.
+	r = CheckPubkey(read(t, "rsa-e-larger-n.key"), WithChecks("rsainvalid"))
+	if f := r.Findings["rsainvalid"]; f == nil || f.Subtest != "e_too_large" {
+		t.Errorf("rsa-e-larger-n: got %+v (type=%s err=%v)", f, r.Type, r.Err)
 	}
 	r = CheckPubkey(read(t, "rsa-ok.key"), WithChecks("rsainvalid"))
 	if has(r, "rsainvalid") {
@@ -203,6 +218,32 @@ func TestFailures(t *testing.T) {
 				t.Errorf("unsupported/%s: type=%s", e.Name(), r.Type)
 			}
 		}
+	}
+}
+
+func TestFallback(t *testing.T) {
+	checks := WithChecks("roca", "rsabias", "sharedprimes", "fermat")
+	for _, tc := range []struct{ file, typ string }{
+		{"fallback/invalidver.crt", "ec"},  // invalid X.509 version
+		{"fallback/rsa-fido.crt", "ec"},    // ECDSA signature with NULL params
+		{"fallback/rootagency.crt", "rsa"}, // RSA modulus missing leading zero
+	} {
+		r := CheckCert(read(t, tc.file), checks)
+		if r.Type != tc.typ {
+			t.Errorf("%s: type=%s want %s (err %v)", tc.file, r.Type, tc.typ, r.Err)
+		}
+	}
+	r := CheckCert(read(t, "fallback/rootagency.crt"), checks)
+	if r.Bits != 512 || r.Warn != WarnFallbackParser {
+		t.Errorf("rootagency: bits=%d warn=%q", r.Bits, r.Warn)
+	}
+	r = CheckCert(read(t, "fallback/invalidver.crt"), checks)
+	if r.Warn != WarnFallbackParser {
+		t.Errorf("invalidver: warn=%q", r.Warn)
+	}
+	r = CheckCert(read(t, "rsa-fermat.crt"), checks)
+	if r.Warn != "" {
+		t.Errorf("rsa-fermat.crt: unexpected warn=%q", r.Warn)
 	}
 }
 

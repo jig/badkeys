@@ -154,11 +154,14 @@ func CheckCert(data []byte, opts ...Option) KeyResult {
 		return unparseable(errNoPEM)
 	}
 	crt, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		return unparseable(err)
+	if err == nil && (crt.Version < 1 || crt.Version > 3) {
+		err = errInvalidVersion
 	}
-	if crt.Version < 1 || crt.Version > 3 {
-		return unparseable(errInvalidVersion)
+	if err != nil {
+		if r, ok := checkCertFallback(block.Bytes, cfg); ok {
+			return r
+		}
+		return unparseable(err)
 	}
 	return checkSPKI(crt.RawSubjectPublicKeyInfo, cfg)
 }

@@ -14,4 +14,4 @@
 package badkeys
 
 // Version is the badkeys upstream release this port tracks.
-const Version = "0.0.19"
+const Version = "0.0.21"

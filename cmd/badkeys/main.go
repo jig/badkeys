@@ -71,6 +71,13 @@ func main() {
 
 func report(name string, data []byte, opts []badkeys.Option) bool {
 	r := badkeys.DetectAndCheck(data, opts...)
+	switch r.Warn {
+	case "":
+	case badkeys.WarnFallbackParser:
+		fmt.Fprintf(os.Stderr, "WARNING: X.509 error, using fallback parser, %s\n", name)
+	default:
+		fmt.Fprintf(os.Stderr, "WARNING: %s, %s\n", r.Warn, name)
+	}
 	if !r.Flagged() {
 		fmt.Printf("%s: %s, no problems found\n", name, r.Type)
 		return false

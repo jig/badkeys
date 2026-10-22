@@ -7,7 +7,7 @@ cryptographic public keys for known weaknesses and match them against
 blocklists of compromised keys.
 
 This is a from-scratch reimplementation of the upstream Python package (MIT
-licensed). It tracks upstream release **0.0.19**. All vulnerability checks
+licensed). It tracks upstream release **0.0.21**. All vulnerability checks
 produce identical results to the Python version on the shared test fixtures;
 the only differences are in key-parsing coverage (see *Limitations*).
 
@@ -95,6 +95,10 @@ upstream can parse them:
 
 RSA keys with unusually large or invalid exponents *are* supported (parsed with
 a dedicated ASN.1 path, bypassing `crypto/x509`'s exponent size limit).
+
+Certificates that `crypto/x509` rejects (invalid version, malformed RSA
+modulus, …) are retried with a lenient fallback parser that only extracts the
+public key; such results carry `KeyResult.Warn == WarnFallbackParser`.
 
 Not ported (yet): DKIM/DNSSEC record helpers beyond `CheckDNSKEY`, and the SSH/
 TLS network scanners.

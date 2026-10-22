@@ -62,6 +62,11 @@ type KeyResult struct {
 	// Err is set for "unparseable"/"unsupported" results and carries the
 	// underlying parse error.
 	Err error
+
+	// Warn is a non-fatal warning about how the key was obtained, e.g.
+	// WarnFallbackParser when a certificate was only readable with the
+	// lenient fallback parser.
+	Warn string
 }
 
 // Flagged reports whether any check flagged the key.
