@@ -52,11 +52,19 @@ the low-level `CheckRSA`, `CheckDSA`, `CheckAll`.
 ## Checks
 
 Default checks: `fermat`, `roca`, `rsainvalid`, `rsapoly`, `sharedprimes`,
-`smalld`, `smallfactors`, `blocklist`, `dsasparse`.
+`smalld`, `smallfactors`, `blocklist`, `dsasparse`, `ecsmallpriv`.
 Warning checks: `rsawarnings`, `rsabias`.
 Extra (higher false-positive) checks: `pattern`, `xzbackdoor`.
 
 Call `badkeys.Checks()` for the full list with descriptions.
+
+`ecsmallpriv` is specific to this Go port (not yet upstream): it finds
+NIST-curve (P-224/256/384/521) keys whose private scalar `d` is tiny, using a
+baby-step giant-step search that covers `d` ≤ ~8.4·10⁶ and `d` ≥ n − 8192
+(~2 ms per P-384 key). This is the flaw behind the [2025 eMudhra intermediate
+CA compromise](https://bugzilla.mozilla.org/show_bug.cgi?id=2083449), whose
+eight P-384 intermediates had `d < 256`; with `WithKeyRecover()` the private
+key is returned as PEM.
 
 ## Blocklist
 

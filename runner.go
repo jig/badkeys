@@ -1,6 +1,9 @@
 package badkeys
 
-import "math/big"
+import (
+	"crypto/elliptic"
+	"math/big"
+)
 
 // CheckRSA runs the named checks against an RSA public key (modulus n,
 // exponent e). When keyRecover is true and a check recovers factors or the
@@ -70,6 +73,42 @@ func CheckDSA(y, p *big.Int, checks ...string) map[string]*Finding {
 			continue
 		}
 		f.Check = name
+		results[name] = f
+	}
+	return results
+}
+
+// CheckEC runs the named checks against an elliptic-curve public key point
+// (x, y) on curve. Curve-agnostic checks (the blocklist) receive the x
+// coordinate. When keyRecover is true and the private scalar is recovered, the
+// finding's PrivateKey field is populated with a PEM key. If checks is empty,
+// the default checks are used.
+func CheckEC(curve elliptic.Curve, x, y *big.Int, keyRecover bool, checks ...string) map[string]*Finding {
+	if len(checks) == 0 {
+		checks = DefaultChecks()
+	}
+	results := map[string]*Finding{}
+	for _, name := range checks {
+		def, ok := registry[name]
+		if !ok {
+			continue
+		}
+		var f *Finding
+		switch def.Kind {
+		case kindEC:
+			f = def.ec(curve, x, y)
+		case kindAll:
+			f = def.all(minBytes(x))
+		default:
+			continue
+		}
+		if f == nil {
+			continue
+		}
+		f.Check = name
+		if keyRecover && f.D != nil && curve != nil {
+			f.PrivateKey = ecRecover(curve, f.D)
+		}
 		results[name] = f
 	}
 	return results

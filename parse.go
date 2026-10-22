@@ -40,7 +40,7 @@ func checkKey(pub any, spki []byte, cfg config) KeyResult {
 		r.Type = "ec"
 		r.Curve = normalizeCurve(k.Curve.Params().Name)
 		r.X, r.Y = k.X, k.Y
-		r.Findings = CheckAll(minBytes(k.X), cfg.checks...)
+		r.Findings = CheckEC(k.Curve, k.X, k.Y, cfg.keyRecover, cfg.checks...)
 	case ed25519.PublicKey:
 		r.Type = "ec"
 		r.Curve = "ed25519"

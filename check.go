@@ -1,6 +1,9 @@
 package badkeys
 
-import "math/big"
+import (
+	"crypto/elliptic"
+	"math/big"
+)
 
 // checkKind classifies which key values a check operates on.
 type checkKind int
@@ -9,6 +12,7 @@ const (
 	kindRSA checkKind = iota // operates on RSA (n, e)
 	kindDSA                  // operates on DSA (y, p)
 	kindAll                  // operates on a single canonical byte value
+	kindEC                   // operates on an elliptic-curve point (curve, x, y)
 )
 
 // checkGroup selects which preset a check belongs to.
@@ -32,6 +36,7 @@ type checkDef struct {
 	dsa func(y, p *big.Int) *Finding
 	// all receives the canonical byte representation of the key value.
 	all func(val []byte) *Finding
+	ec  func(curve elliptic.Curve, x, y *big.Int) *Finding
 }
 
 // registry holds every known check keyed by name.
@@ -60,6 +65,8 @@ func init() {
 		Desc: "Blocklists of compromised keys", all: blocklistCheck})
 	register(&checkDef{Name: "dsasparse", Kind: kindDSA, Group: groupDefault,
 		Desc: "DSA sparse key vulnerability", dsa: dsasparse})
+	register(&checkDef{Name: "ecsmallpriv", Kind: kindEC, Group: groupDefault,
+		Desc: "EC key with tiny private scalar (e.g. eMudhra 2025 intermediates)", ec: ecsmallpriv})
 
 	register(&checkDef{Name: "rsawarnings", Kind: kindRSA, Group: groupWarning,
 		Desc: "RSA key size and exponent warnings", rsa: rsawarnings})
@@ -93,7 +100,7 @@ func checkNames(groups ...checkGroup) []string {
 // insertion order for stable output).
 var allCheckOrder = []string{
 	"fermat", "roca", "rsainvalid", "rsapoly", "sharedprimes", "smalld",
-	"smallfactors", "blocklist", "dsasparse",
+	"smallfactors", "blocklist", "dsasparse", "ecsmallpriv",
 	"rsawarnings", "rsabias",
 	"pattern", "xzbackdoor",
 }

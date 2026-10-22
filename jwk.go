@@ -1,6 +1,7 @@
 package badkeys
 
 import (
+	"crypto/elliptic"
 	"encoding/base64"
 	"math/big"
 	"strings"
@@ -11,6 +12,11 @@ import (
 var validJWKCurves = map[string]bool{
 	"P-256": true, "P-384": true, "P-521": true,
 	"Ed25519": true, "Ed448": true, "X25519": true, "X448": true, "secp256k1": true,
+}
+
+// jwkECCurves maps JWK curve names to the curves supported by EC point checks.
+var jwkECCurves = map[string]elliptic.Curve{
+	"P-256": elliptic.P256(), "P-384": elliptic.P384(), "P-521": elliptic.P521(),
 }
 
 // JWK is a minimal JSON Web Key. Decode JSON into this struct (or a
@@ -53,7 +59,12 @@ func CheckJWK(key JWK, opts ...Option) KeyResult {
 		r.Type = "ec"
 		r.Curve = strings.ToLower(strings.ReplaceAll(key.Crv, "-", ""))
 		r.X = x
-		r.Findings = CheckAll(minBytes(x), cfg.checks...)
+		y, err := jwkInt(key.Y)
+		if err != nil {
+			return unparseable(errNoPEM)
+		}
+		r.Y = y
+		r.Findings = CheckEC(jwkECCurves[key.Crv], x, y, cfg.keyRecover, cfg.checks...)
 	case "OKP":
 		if key.X == "" || !validJWKCurves[key.Crv] {
 			return unparseable(errNoPEM)

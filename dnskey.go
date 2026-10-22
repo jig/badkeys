@@ -1,6 +1,7 @@
 package badkeys
 
 import (
+	"crypto/elliptic"
 	"encoding/base64"
 	"math/big"
 	"strconv"
@@ -77,19 +78,22 @@ func CheckDNSKEY(rec string, opts ...Option) KeyResult {
 		r.Findings = CheckAll(minBytes(y), cfg.checks...)
 		return r
 	case 13, 14, 15, 16: // ECDSA P-256/P-384, Ed25519, Ed448
-		var x *big.Int
+		var x, y *big.Int
 		var curve string
+		var ecCurve elliptic.Curve
 		switch alg {
 		case 13:
 			if len(key) != 64 {
 				return unparseable(errNoPEM)
 			}
-			curve, x = "p256", new(big.Int).SetBytes(key[0:32])
+			curve, x, y = "p256", new(big.Int).SetBytes(key[0:32]), new(big.Int).SetBytes(key[32:])
+			ecCurve = elliptic.P256()
 		case 14:
 			if len(key) != 96 {
 				return unparseable(errNoPEM)
 			}
-			curve, x = "p384", new(big.Int).SetBytes(key[0:48])
+			curve, x, y = "p384", new(big.Int).SetBytes(key[0:48]), new(big.Int).SetBytes(key[48:])
+			ecCurve = elliptic.P384()
 		case 15:
 			if len(key) != 32 {
 				return unparseable(errNoPEM)
@@ -104,7 +108,12 @@ func CheckDNSKEY(rec string, opts ...Option) KeyResult {
 		r.Type = "ec"
 		r.Curve = curve
 		r.X = x
-		r.Findings = CheckAll(minBytes(x), cfg.checks...)
+		if ecCurve != nil {
+			r.Y = y
+			r.Findings = CheckEC(ecCurve, x, y, cfg.keyRecover, cfg.checks...)
+		} else {
+			r.Findings = CheckAll(minBytes(x), cfg.checks...)
+		}
 		return r
 	}
 	return unsupported(errUnsupportedKey)
