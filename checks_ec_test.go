@@ -120,6 +120,12 @@ func TestECSmallPrivJWKAndDNSKEY(t *testing.T) {
 	if f := r.Findings["ecsmallpriv"]; f == nil || f.D.Int64() != 200 {
 		t.Errorf("DNSKEY: got %+v (type=%s err=%v)", f, r.Type, r.Err)
 	}
+	// Oversized coordinate must be rejected, not panic.
+	long := jwkB64(append([]byte{1}, make([]byte, 40)...))
+	if r := CheckJWK(JWK{Kty: "EC", Crv: "P-256", X: long, Y: long}); has(r, "ecsmallpriv") {
+		t.Errorf("JWK oversized coordinate: unexpected finding")
+	}
+
 	for _, f := range []string{"dnssec-p256-rfc6605.dnskey"} {
 		data, _ := os.ReadFile(filepath.Join("testdata", "dnssec", f))
 		if r := CheckDNSKEY(strings.TrimSpace(string(data))); has(r, "ecsmallpriv") {

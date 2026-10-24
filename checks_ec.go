@@ -131,6 +131,11 @@ func ecsmallpriv(curve elliptic.Curve, qx, qy *big.Int) *Finding {
 	if c == nil || qx == nil || qy == nil {
 		return nil
 	}
+	// JWK coordinates are not validated upstream; reject out-of-range values
+	// so ecKey cannot overflow its fixed-size buffer.
+	if qx.Sign() < 0 || qy.Sign() < 0 || qx.Cmp(c.P) >= 0 || qy.Cmp(c.P) >= 0 {
+		return nil
+	}
 	t := getECTable(c)
 	r := ecPoint{new(big.Int).Set(qx), new(big.Int).Set(qy)}
 	for i := int64(0); i < ecGiantSteps; i++ {
