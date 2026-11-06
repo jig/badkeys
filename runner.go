@@ -5,6 +5,11 @@ import (
 	"math/big"
 )
 
+// RSAMaxSize is the largest RSA modulus, in bits, that is checked. Larger
+// (implausible) keys only get the rsawarnings check, which flags their size;
+// the other checks would be too expensive.
+const RSAMaxSize = 8192
+
 // CheckRSA runs the named checks against an RSA public key (modulus n,
 // exponent e). When keyRecover is true and a check recovers factors or the
 // private exponent, the finding's PrivateKey field is populated with a PEM
@@ -14,9 +19,10 @@ func CheckRSA(n, e *big.Int, keyRecover bool, checks ...string) map[string]*Find
 		checks = DefaultChecks()
 	}
 	results := map[string]*Finding{}
+	tooLarge := n.BitLen() > RSAMaxSize
 	for _, name := range checks {
 		def, ok := registry[name]
-		if !ok {
+		if !ok || (tooLarge && name != "rsawarnings") {
 			continue
 		}
 		var f *Finding

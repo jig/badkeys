@@ -8,11 +8,6 @@ import (
 	cbasn1 "golang.org/x/crypto/cryptobyte/asn1"
 )
 
-// WarnFallbackParser is set in KeyResult.Warn when a certificate could not be
-// parsed by crypto/x509 and its public key was extracted with the lenient
-// fallback parser instead.
-const WarnFallbackParser = "fallbackparser"
-
 // fallbackCertSPKI extracts the raw SubjectPublicKeyInfo from a DER
 // certificate by walking the TBSCertificate structure without validating any
 // other field (version, signature algorithm, extensions, ...). This mirrors
@@ -87,9 +82,5 @@ func checkCertFallback(der []byte, cfg config) (KeyResult, bool) {
 		}
 		r = checkKey(k, spki, cfg)
 	}
-	if r.Type == "unsupported" {
-		return r, true
-	}
-	r.Warn = WarnFallbackParser
 	return r, true
 }

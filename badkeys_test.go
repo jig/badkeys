@@ -233,17 +233,8 @@ func TestFallback(t *testing.T) {
 			t.Errorf("%s: type=%s want %s (err %v)", tc.file, r.Type, tc.typ, r.Err)
 		}
 	}
-	r := CheckCert(read(t, "fallback/rootagency.crt"), checks)
-	if r.Bits != 512 || r.Warn != WarnFallbackParser {
-		t.Errorf("rootagency: bits=%d warn=%q", r.Bits, r.Warn)
-	}
-	r = CheckCert(read(t, "fallback/invalidver.crt"), checks)
-	if r.Warn != WarnFallbackParser {
-		t.Errorf("invalidver: warn=%q", r.Warn)
-	}
-	r = CheckCert(read(t, "rsa-fermat.crt"), checks)
-	if r.Warn != "" {
-		t.Errorf("rsa-fermat.crt: unexpected warn=%q", r.Warn)
+	if r := CheckCert(read(t, "fallback/rootagency.crt"), checks); r.Bits != 512 {
+		t.Errorf("rootagency: bits=%d", r.Bits)
 	}
 }
 

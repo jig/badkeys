@@ -134,8 +134,8 @@ func CheckPubkey(data []byte, opts ...Option) KeyResult {
 // CheckPrivkey parses a PEM-encoded private key and checks its public part.
 func CheckPrivkey(data []byte, opts ...Option) KeyResult {
 	cfg := newConfig(opts)
-	if block, _ := pem.Decode(data); block != nil && block.Type == "RSA PRIVATE KEY" {
-		if k, ok := parseRSAPrivFromPKCS1(block.Bytes); ok {
+	if block, _ := pem.Decode(data); block != nil {
+		if k, ok := parseRSAPrivPEMLenient(block); ok {
 			return checkKey(k, nil, cfg)
 		}
 	}
@@ -202,6 +202,11 @@ func CheckSSHPubkey(data []byte, opts ...Option) KeyResult {
 // CheckSSHPrivkey parses an OpenSSH private key and checks its public part.
 func CheckSSHPrivkey(data []byte, opts ...Option) KeyResult {
 	cfg := newConfig(opts)
+	if block, _ := pem.Decode(data); block != nil {
+		if k, ok := parseRSAPrivPEMLenient(block); ok {
+			return checkKey(k, nil, cfg)
+		}
+	}
 	key, err := ssh.ParseRawPrivateKey(data)
 	if err != nil {
 		return classifyErr(err)
